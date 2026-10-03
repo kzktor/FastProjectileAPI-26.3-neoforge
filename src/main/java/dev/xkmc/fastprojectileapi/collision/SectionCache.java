@@ -47,7 +47,7 @@ public class SectionCache {
 				(x + 1) << 4, (y + 1) << 4, (z + 1) << 4);
 		var sect = storage.getSection(SectionPos.asLong(x, y, z));
 		if (sect != null) sect.getEntities().forEach(this::add);
-		for (var e : level.getPartEntities()) {
+		for (var e : level.dragonParts()) {
 			add(e);
 		}
 	}

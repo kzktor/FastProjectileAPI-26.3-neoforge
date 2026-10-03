@@ -1,6 +1,6 @@
 package dev.xkmc.fastprojectileapi.spellcircle;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 public interface SpellCircleHolder {
@@ -8,7 +8,7 @@ public interface SpellCircleHolder {
 	boolean shouldShowSpellCircle();
 
 	@Nullable
-	ResourceLocation getSpellCircle();
+	Identifier getSpellCircle();
 
 	float getCircleSize(float pTick);
 

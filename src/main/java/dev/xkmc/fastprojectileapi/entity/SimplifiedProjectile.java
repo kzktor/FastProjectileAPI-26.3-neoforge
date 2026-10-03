@@ -1,13 +1,15 @@
 package dev.xkmc.fastprojectileapi.entity;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.entity.IEntityWithComplexSpawn;
 
@@ -48,17 +50,18 @@ public abstract class SimplifiedProjectile extends SimplifiedEntity implements T
 		}
 	}
 
-	public void lerpMotion(double pX, double pY, double pZ) {
-		setDeltaMovement(pX, pY, pZ);
+	@Override
+	public void lerpMotion(Vec3 move) {
+		setDeltaMovement(move);
 		if (xRotO == 0.0F && yRotO == 0.0F) {
-			double d0 = Math.sqrt(pX * pX + pZ * pZ);
+			double d0 = Math.sqrt(move.x * move.x + move.z * move.z);
 			if (d0 > 1e-6) {
-				setXRot((float) -(Mth.atan2(pY, d0) * Mth.RAD_TO_DEG));
-				setYRot((float) -(Mth.atan2(pX, pZ) * Mth.RAD_TO_DEG));
+				setXRot((float) -(Mth.atan2(move.y, d0) * Mth.RAD_TO_DEG));
+				setYRot((float) -(Mth.atan2(move.x, move.z) * Mth.RAD_TO_DEG));
 			}
 			xRotO = getXRot();
 			yRotO = getYRot();
-			moveTo(getX(), getY(), getZ(), getYRot(), getXRot());
+			snapTo(getX(), getY(), getZ(), getYRot(), getXRot());
 		}
 
 	}
@@ -104,20 +107,23 @@ public abstract class SimplifiedProjectile extends SimplifiedEntity implements T
 	}
 
 	@OverridingMethodsMustInvokeSuper
-	protected void addAdditionalSaveData(CompoundTag nbt) {
+	@Override
+	protected void addAdditionalSaveData(ValueOutput nbt) {
 		if (ownerUUID != null) {
-			nbt.putUUID("Owner", ownerUUID);
+			nbt.store("Owner", UUIDUtil.CODEC, ownerUUID);
 		}
 		nbt.putInt("Age", tickCount);
 	}
 
 	@OverridingMethodsMustInvokeSuper
-	protected void readAdditionalSaveData(CompoundTag nbt) {
-		if (nbt.hasUUID("Owner")) {
-			ownerUUID = nbt.getUUID("Owner");
+	@Override
+	protected void readAdditionalSaveData(ValueInput nbt) {
+		var owner = nbt.read("Owner", UUIDUtil.CODEC);
+		if (owner.isPresent()) {
+			ownerUUID = owner.get();
 			cachedOwner = null;
 		}
-		tickCount = nbt.getInt("Age");
+		tickCount = nbt.getIntOr("Age", 0);
 	}
 
 	@OverridingMethodsMustInvokeSuper

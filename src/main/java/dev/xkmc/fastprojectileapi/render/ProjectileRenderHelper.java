@@ -1,20 +1,21 @@
 package dev.xkmc.fastprojectileapi.render;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.xkmc.fastprojectileapi.FastProjectileAPI;
 import dev.xkmc.l2serial.util.Wrappers;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-@EventBusSubscriber(value = Dist.CLIENT, modid = FastProjectileAPI.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(value = Dist.CLIENT, modid = FastProjectileAPI.MODID)
 public class ProjectileRenderHelper {
 
 	public static final List<ClientObjectCache.Provider> LIST = new ArrayList<>();
@@ -43,23 +44,25 @@ public class ProjectileRenderHelper {
 		}
 	}
 
+	/**
+	 * 26.3: {@code RenderLevelStageEvent.Stage.AFTER_ENTITIES/AFTER_PARTICLES} are gone and
+	 * {@code MultiBufferSource} no longer exists. Custom geometry is now submitted through
+	 * {@link SubmitCustomGeometryEvent}, using the level pose stack and the camera render state.
+	 */
 	@SubscribeEvent
-	public static void renderLate(RenderLevelStageEvent event) {
+	public static void submitGeometry(SubmitCustomGeometryEvent event) {
 		var level = Minecraft.getInstance().level;
-		if (level == null) return;
-		if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_ENTITIES) {
-			var buffer = Minecraft.getInstance().renderBuffers().bufferSource();
-			for (var e : LIST) {
-				e.get(level).renderAll(event.getCamera(), event.getFrustum(), event.getPoseStack(), event.getPartialTick(), buffer);
-			}
-			QUEUE.flush(buffer);
-			buffer.endLastBatch();
+		if (level == null || QUEUE == null) return;
+		var state = event.getLevelRenderState();
+		PoseStack pose = event.getPoseStack();
+		SubmitNodeCollector collector = event.getSubmitNodeCollector();
+		float pTick = state.worldPartialTicks;
+		boolean hitboxes = Minecraft.getInstance().options.keyDebugShowHitboxes.isDown()
+				&& !Minecraft.getInstance().showOnlyReducedInfo();
+		for (var e : LIST) {
+			e.get(level).renderAll(collector, pose, state.cameraRenderState, pTick, hitboxes);
 		}
-		if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
-			var buffer = Minecraft.getInstance().renderBuffers().bufferSource();
-			QUEUE.flush(buffer);
-			buffer.endLastBatch();
-		}
+		QUEUE.flush(collector, pose);
 	}
 
 	private static class RenderQueue {
@@ -73,13 +76,13 @@ public class ProjectileRenderHelper {
 			return Wrappers.cast(lists[key.index]);
 		}
 
-		public void flush(MultiBufferSource.BufferSource buffer) {
+		public void flush(SubmitNodeCollector collector, PoseStack pose) {
 			int n = lists.length;
 			for (int i = 0; i < n; i++) {
 				var list = lists[i];
 				lists[i] = null;
 				if (list != null) {
-					ProjTypeHolder.HOLDERS.get(i).type.start(buffer, Wrappers.cast(list));
+					ProjTypeHolder.HOLDERS.get(i).type.start(collector, pose, Wrappers.cast(list));
 				}
 			}
 		}

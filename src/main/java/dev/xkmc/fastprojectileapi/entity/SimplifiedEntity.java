@@ -2,6 +2,7 @@ package dev.xkmc.fastprojectileapi.entity;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -21,7 +22,7 @@ public abstract class SimplifiedEntity extends Entity {
 
 	@Override
 	public void baseTick() {
-		this.walkDistO = this.walkDist;
+		// 26.3: Entity no longer has walkDist / walkDistO; walk animation tracking is gone.
 		this.xRotO = this.getXRot();
 		this.yRotO = this.getYRot();
 		this.checkBelowWorld();
@@ -40,13 +41,8 @@ public abstract class SimplifiedEntity extends Entity {
 		return false;
 	}
 
-	@Override
-	protected void tryCheckInsideBlocks() {
-	}
-
-	@Override
-	protected void checkInsideBlocks() {
-	}
+	// 26.3: Entity#tryCheckInsideBlocks / checkInsideBlocks no longer exist (block-inside
+	// effects are collected through InsideBlockEffectApplier), so there is nothing to skip.
 
 	@Override
 	public int getRemainingFireTicks() {
@@ -62,10 +58,10 @@ public abstract class SimplifiedEntity extends Entity {
 	}
 
 	public PushReaction getPistonPushReaction() {
-		return PushReaction.IGNORE;
+		return PushReaction.IGNORE_ENTITY;
 	}
 
-	public boolean mayInteract(Level pLevel, BlockPos pPos) {
+	public boolean mayInteract(ServerLevel pLevel, BlockPos pPos) {
 		return false;
 	}
 
@@ -98,9 +94,12 @@ public abstract class SimplifiedEntity extends Entity {
 	public void push(double pX, double pY, double pZ) {
 	}
 
+	// 26.3: Entity#isInvulnerableTo(DamageSource) is gone and Entity#hurtServer is abstract.
+	// Simplified entities are never damageable; the old isInvulnerableTo override existed only to
+	// shield them from damage, which returning false here expresses directly.
 	@Override
-	public boolean isInvulnerableTo(DamageSource pSource) {
-		return isRemoved();
+	public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
+		return false;
 	}
 
 }

@@ -6,7 +6,7 @@ import dev.xkmc.l2core.serial.config.CollectType;
 import dev.xkmc.l2core.serial.config.ConfigCollect;
 import dev.xkmc.l2serial.serialization.marker.SerialClass;
 import dev.xkmc.l2serial.serialization.marker.SerialField;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -15,7 +15,7 @@ import java.util.HashMap;
 public class SpellCircleConfig extends BaseConfig {
 
 	@Nullable
-	public static SpellComponent getFromConfig(ResourceLocation s) {
+	public static SpellComponent getFromConfig(Identifier s) {
 		return FastProjectileAPI.SPELL.getMerged().map.get(s.toString());
 	}
 

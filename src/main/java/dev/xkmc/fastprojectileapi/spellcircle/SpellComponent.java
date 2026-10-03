@@ -120,7 +120,7 @@ public class SpellComponent {
 			handle.matrix.scale(s, s, s);
 			for (SpellComponent child : _children) {
 				handle.matrix.pushPose();
-				handle.matrix.mulPose(Axis.ZP.rotationDegrees(a));
+				handle.matrix.rotate(Axis.ZP.rotationDegrees(a));
 				handle.matrix.translate(r, 0, 0);
 				child.render(sup);
 				handle.matrix.popPose();
